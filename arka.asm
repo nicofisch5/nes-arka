@@ -1,15 +1,16 @@
-  ; iNES Header
+; ************** iNES HEADERS ****************
   include "_ines-header.asm"
 
-;; DECLARE SOME VARIABLES HERE
+
+; ************** VARIABLES ****************
   .rsset $0000  ;;start variables at ram location 0
 
 joypad1   .rs 1  ; player 1 gamepad buttons, one bit per button
 ballx     .rs 1  ; ball horizontal position
 bally     .rs 1  ; ball vertical position
 
-
-;; CONSTANTS FOR JOYPAD
+; ************** CONSTANTS ****************
+; For joypad
 BUTTON_A      = 1 << 7
 BUTTON_B      = 1 << 6
 BUTTON_SELECT = 1 << 5
@@ -19,9 +20,13 @@ BUTTON_DOWN   = 1 << 2
 BUTTON_LEFT   = 1 << 1
 BUTTON_RIGHT  = 1 << 0
 
-;; CONSTANTS FOR SPRITES
-SPR_STICK   = $200
-SPR_BALL    = $214
+; For sprites
+SPR_STICK_ADDR        = $200
+SPR_STICK_SIZE        = $20
+WALL_LIMIT_LEFT       = $00
+WALL_LIMIT_RIGHT      = $D5
+SPR_BALL_ADDR         = $214
+
 
 ; ************** ABOUT BANKING ****************
 ; NESASM arranges everything in 8KB code and 8KB graphics banks.
@@ -41,7 +46,8 @@ SPR_BALL    = $214
   .bank 0
   .org $C000
 
-
+  ;
+; ************** CODE NECESSARY FOR ALL NES GAMES ****************
   include "_reset-vblank-clearmem.asm"
 
 
@@ -85,7 +91,7 @@ LoadSprites:
 
 LoadSpritesLoop:
   LDA sprites, x        ; load data from address (sprites + x)
-  STA SPR_STICK, x          ; store into RAM address ($0200 + x)
+  STA SPR_STICK_ADDR, x          ; store into RAM address ($0200 + x)
   INX                   ; X = X + 1
   CPX #$18              ; Compare X to hex $10, decimal 16
   BNE LoadSpritesLoop   ; Branch to LoadSpritesLoop if compare was Not Equal to zero
@@ -94,7 +100,6 @@ LoadSpritesLoop:
   LDA #%10000000   ; enable NMI, sprites from Pattern Table 0
   STA $2000        ; PPUCTRL ca be access at $2000
                    ; Each bit has its importance
-
 
 
 LoadBackground:
@@ -143,8 +148,6 @@ LoadAttributeLoopLin:
 
 
 
-
-
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
   STA $2000
 
@@ -170,6 +173,9 @@ NMI:
   LDA #$00        ;;tell the ppu there is no background scrolling
   STA $2005
   STA $2005
+
+
+
 
   JSR ReadController1  ;;get the current button data for player 1
   JSR CheckLeftbutton
@@ -204,54 +210,70 @@ CheckLeftbutton:
   LDX #0
   LDA joypad1  ; Load controller state
   AND #BUTTON_LEFT   ; Perform bitwise AND with LEFT button mask
-  BNE LeftButtonPressedLoop
+  BNE CheckCollisionLeftWall
     ; Left button is not pressed
     ; Your code here
   RTS
 
-LeftButtonPressedLoop:
-  LDA SPR_STICK+3,y     ; load sprite X position
+CheckCollisionLeftWall:
+  LDA SPR_STICK_ADDR+3
+  CMP #WALL_LIMIT_LEFT
+  BEQ CollisionLeftWall
+
+MoveStickLeftLoop:
+  LDA SPR_STICK_ADDR+3,y     ; load sprite X position
   SEC             ; make sure the carry flag is clear
   SBC #$01        ; A = A - 1
-  STA SPR_STICK+3,y     ; save sprite X position
+  STA SPR_STICK_ADDR+3,y     ; save sprite X position
   INY             ; add the offset of 4
   INY
   INY
   INY             ; (one sprite is 4 bytes)
   INX
   CPX #$05        ; loop 4 time because of 4 sprites to move
-  BNE LeftButtonPressedLoop
+  BNE MoveStickLeftLoop
   RTS
+
+CollisionLeftWall:
+  ; no code, just no move
 
 CheckRightbutton:
   LDY #0
   LDX #0
   LDA joypad1  ; Load controller state
   AND #BUTTON_RIGHT   ; Perform bitwise AND with LEFT button mask
-  BNE RightButtonPressedLoop
+  BNE CheckCollisionRightWall
     ; Left button is not pressed
     ; Your code here
   RTS
 
-RightButtonPressedLoop:
-  LDA SPR_STICK+3,y     ; load sprite X position
+CheckCollisionRightWall:
+  LDA SPR_STICK_ADDR+3
+  CMP #WALL_LIMIT_RIGHT
+  BEQ CollisionRightWall
+
+MoveStickRightLoop:
+  LDA SPR_STICK_ADDR+3,y     ; load sprite X position
   CLC             ; make sure the carry flag is clear
   ADC #$01        ; A = A + 1
-  STA SPR_STICK+3,y     ; save sprite X position
+  STA SPR_STICK_ADDR+3,y     ; save sprite X position
   INY             ; add the offset of 4
   INY
   INY
   INY             ; (one sprite is 4 bytes)
   INX
   CPX #$05        ; loop 4 time because of 4 sprites to move
-  BNE RightButtonPressedLoop
+  BNE MoveStickRightLoop
   RTS
+
+CollisionRightWall
+  ; no code, just no move
 
 UpdateBallPosition:
   LDA ballx        ; load data from address (sprites + x)
-  STA SPR_BALL+0          ; store into RAM address ($0200 + x)
+  STA SPR_BALL_ADDR+0          ; store into RAM address ($0200 + x)
   LDA bally        ; load data from address (sprites + x)
-  STA SPR_BALL+3          ; store into RAM address ($0200 + x)
+  STA SPR_BALL_ADDR+3          ; store into RAM address ($0200 + x)
   RTS
 
 
