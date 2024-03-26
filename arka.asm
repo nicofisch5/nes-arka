@@ -27,6 +27,8 @@ SPR_STICK_ADDR        = $200
 SPR_STICK_SIZE        = $20
 WALL_LIMIT_LEFT       = $00
 WALL_LIMIT_RIGHT      = $F6
+WALL_LIMIT_TOP        = $04
+WALL_LIMIT_BOTTOM     = $E0 ; temporary
 SPR_BALL_ADDR         = $214
 
 
@@ -256,8 +258,8 @@ CheckRightbutton:
   RTS
 
 CheckCollisionRightWall:
-  LDA SPR_STICK_ADDR+3
-  CMP #(WALL_LIMIT_RIGHT-SPR_STICK_SIZE)
+  LDA SPR_STICK_ADDR+3       ; load sprite X position
+  CMP #(WALL_LIMIT_RIGHT-SPR_STICK_SIZE)    ; the stick is large, we check the wall with le right border by adding its size
   BEQ CollisionRightWall
 
 MoveStickRightLoop:
@@ -270,16 +272,19 @@ MoveStickRightLoop:
   INY
   INY             ; (one sprite is 4 bytes)
   INX
-  CPX #$05        ; loop 4 time because of 4 sprites to move
+  CPX #$05        ; loop 5 time because stick is 5 sprites to move
   BNE MoveStickRightLoop
   RTS
 
 CollisionRightWall
-  ; no code, just no move
+  ; no code, just no move for the stick
 
 UpdateBallPosition:
+  JSR CheckBallCollisionCeiling
+  JSR CheckBallCollisionBottom
   JSR CheckBallCollisionLeftWall
   JSR CheckBallCollisionRightWall
+
   LDA SPR_BALL_ADDR+3        ; load data from address (sprites + x)
   CLC
   ADC ballright
@@ -296,13 +301,39 @@ UpdateBallPosition:
 
   RTS
 
+CheckBallCollisionCeiling
+  LDA SPR_BALL_ADDR
+  CMP #WALL_LIMIT_TOP
+  BEQ BallCollisionCeiling
+  RTS
+
+BallCollisionCeiling:  ; change the direction top/down of the ball
+  LDA #$0
+  STA ballup
+  LDA #$1
+  STA balldown
+  RTS
+
+CheckBallCollisionBottom  ; temporary, to see the ball boucong
+  LDA SPR_BALL_ADDR
+  CMP #WALL_LIMIT_BOTTOM
+  BEQ BallCollisionBottom
+  RTS
+
+BallCollisionBottom:  ; change the direction top/down of the ball
+  LDA #$1
+  STA ballup
+  LDA #$0
+  STA balldown
+  RTS
+
 CheckBallCollisionLeftWall:
   LDA SPR_BALL_ADDR+3
   CMP #WALL_LIMIT_LEFT
   BEQ BallCollisionLeftWall
   RTS
 
-BallCollisionLeftWall:
+BallCollisionLeftWall:  ; change the direction left/right of the ball
   LDA #$0
   STA ballleft
   LDA #$1
@@ -315,7 +346,7 @@ CheckBallCollisionRightWall:
   BEQ BallCollisionRightWall
   RTS
 
-BallCollisionRightWall:
+BallCollisionRightWall:  ; change the direction right/left of the ball
   LDA #$1
   STA ballleft
   LDA #$0
