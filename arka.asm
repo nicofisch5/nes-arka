@@ -5,9 +5,13 @@
 ; ************** VARIABLES ****************
   .rsset $0000  ;;start variables at ram location 0
 
-joypad1   .rs 1  ; player 1 gamepad buttons, one bit per button
-ballx     .rs 1  ; ball horizontal position
-bally     .rs 1  ; ball vertical position
+joypad1    .rs 1  ; player 1 gamepad buttons, one bit per button
+ballx      .rs 1  ; ball horizontal position
+bally      .rs 1  ; ball vertical position
+ballup     .rs 1  ; 1 = ball moving up
+balldown   .rs 1  ; 1 = ball moving down
+ballright  .rs 1  ; 1 = ball moving right
+ballleft   .rs 1  ; 1 = ball moving left
 
 ; ************** CONSTANTS ****************
 ; For joypad
@@ -80,10 +84,16 @@ LoadPalettesLoop:
   BNE LoadPalettesLoop  ; if x = $20, 32 bytes copied, all done
 
   ;Init ball
-  LDA #$30
+  LDA #$40
   STA ballx
-  LDA #$30
+  LDA #$50
   STA bally
+  LDA #$01
+  STA ballup
+  STA ballright
+  LDA #$00
+  STA balldown
+  STA ballleft
 
   ; Boucle qui affiche plusieurs sprites
 LoadSprites:
@@ -270,10 +280,20 @@ CollisionRightWall
   ; no code, just no move
 
 UpdateBallPosition:
-  LDA ballx        ; load data from address (sprites + x)
+  LDA SPR_BALL_ADDR+0        ; load data from address (sprites + x)
+  CLC
+  ADC ballright
+  SEC
+  SBC ballleft
   STA SPR_BALL_ADDR+0          ; store into RAM address ($0200 + x)
-  LDA bally        ; load data from address (sprites + x)
+
+  LDA SPR_BALL_ADDR+3        ; load data from address (sprites + x)
+  CLC
+  ADC balldown
+  SEC
+  SBC ballup
   STA SPR_BALL_ADDR+3          ; store into RAM address ($0200 + x)
+
   RTS
 
 
