@@ -6,8 +6,6 @@
   .rsset $0000  ;;start variables at ram location 0
 
 joypad1    .rs 1  ; player 1 gamepad buttons, one bit per button
-ballx      .rs 1  ; ball horizontal position
-bally      .rs 1  ; ball vertical position
 ballup     .rs 1  ; 1 = ball moving up
 balldown   .rs 1  ; 1 = ball moving down
 ballright  .rs 1  ; 1 = ball moving right
@@ -28,7 +26,7 @@ BUTTON_RIGHT  = 1 << 0
 SPR_STICK_ADDR        = $200
 SPR_STICK_SIZE        = $20
 WALL_LIMIT_LEFT       = $00
-WALL_LIMIT_RIGHT      = $D5
+WALL_LIMIT_RIGHT      = $F6
 SPR_BALL_ADDR         = $214
 
 
@@ -84,10 +82,10 @@ LoadPalettesLoop:
   BNE LoadPalettesLoop  ; if x = $20, 32 bytes copied, all done
 
   ;Init ball
-  LDA #$40
-  STA ballx
-  LDA #$50
-  STA bally
+  ;LDA #$40
+  ;STA ballx
+  ;LDA #$50
+  ;STA bally
   LDA #$01
   STA ballup
   STA ballright
@@ -259,7 +257,7 @@ CheckRightbutton:
 
 CheckCollisionRightWall:
   LDA SPR_STICK_ADDR+3
-  CMP #WALL_LIMIT_RIGHT
+  CMP #(WALL_LIMIT_RIGHT-SPR_STICK_SIZE)
   BEQ CollisionRightWall
 
 MoveStickRightLoop:
@@ -280,22 +278,49 @@ CollisionRightWall
   ; no code, just no move
 
 UpdateBallPosition:
-  LDA SPR_BALL_ADDR+0        ; load data from address (sprites + x)
+  JSR CheckBallCollisionLeftWall
+  JSR CheckBallCollisionRightWall
+  LDA SPR_BALL_ADDR+3        ; load data from address (sprites + x)
   CLC
   ADC ballright
   SEC
   SBC ballleft
-  STA SPR_BALL_ADDR+0          ; store into RAM address ($0200 + x)
+  STA SPR_BALL_ADDR+3          ; store into RAM address ($0200 + x)
 
-  LDA SPR_BALL_ADDR+3        ; load data from address (sprites + x)
+  LDA SPR_BALL_ADDR+0        ; load data from address (sprites + x)
   CLC
   ADC balldown
   SEC
   SBC ballup
-  STA SPR_BALL_ADDR+3          ; store into RAM address ($0200 + x)
+  STA SPR_BALL_ADDR+0          ; store into RAM address ($0200 + x)
 
   RTS
 
+CheckBallCollisionLeftWall:
+  LDA SPR_BALL_ADDR+3
+  CMP #WALL_LIMIT_LEFT
+  BEQ BallCollisionLeftWall
+  RTS
+
+BallCollisionLeftWall:
+  LDA #$0
+  STA ballleft
+  LDA #$1
+  STA ballright
+  RTS
+
+CheckBallCollisionRightWall:
+  LDA SPR_BALL_ADDR+3
+  CMP #WALL_LIMIT_RIGHT
+  BEQ BallCollisionRightWall
+  RTS
+
+BallCollisionRightWall:
+  LDA #$1
+  STA ballleft
+  LDA #$0
+  STA ballright
+  RTS
 
 
   ; $E000: refers to the start of the ROM bank that contains additional program code or data
