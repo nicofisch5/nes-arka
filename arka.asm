@@ -28,7 +28,7 @@ SPR_STICK_SIZE        = $20
 WALL_LIMIT_LEFT       = $00
 WALL_LIMIT_RIGHT      = $F6
 WALL_LIMIT_TOP        = $04
-WALL_LIMIT_BOTTOM     = $E0 ; temporary
+WALL_LIMIT_BOTTOM     = $CD
 SPR_BALL_ADDR         = $214
 
 
@@ -101,7 +101,7 @@ LoadSprites:
 
 LoadSpritesLoop:
   LDA sprites, x        ; load data from address (sprites + x)
-  STA SPR_STICK_ADDR, x          ; store into RAM address ($0200 + x)
+  STA SPR_STICK_ADDR, x ; store into RAM address ($0200 + x)
   INX                   ; X = X + 1
   CPX #$18              ; Compare X to hex $10, decimal 16
   BNE LoadSpritesLoop   ; Branch to LoadSpritesLoop if compare was Not Equal to zero
@@ -280,8 +280,9 @@ CollisionRightWall
   ; no code, just no move for the stick
 
 UpdateBallPosition:
+  JSR CheckBallCollisionStick
   JSR CheckBallCollisionCeiling
-  JSR CheckBallCollisionBottom
+  ;JSR CheckBallCollisionBottom
   JSR CheckBallCollisionLeftWall
   JSR CheckBallCollisionRightWall
 
@@ -299,6 +300,28 @@ UpdateBallPosition:
   SBC ballup
   STA SPR_BALL_ADDR+0          ; store into RAM address ($0200 + x)
 
+  RTS
+
+CheckBallCollisionStick
+  ;;; Vérifier que la balle, au moment où elle touche la limite basse,
+  ;;; se trouve entre la partie gauche et droite du baton
+  LDA SPR_BALL_ADDR
+  CMP #WALL_LIMIT_BOTTOM
+  BNE CheckBallCollisionCeiling
+
+  LDA SPR_BALL_ADDR+3
+  CMP SPR_STICK_ADDR+3
+  BMI CheckBallCollisionCeiling
+
+  LDA SPR_STICK_ADDR+3
+  ADC #SPR_STICK_SIZE
+  CMP SPR_BALL_ADDR+3
+  BMI CheckBallCollisionCeiling
+
+  LDA #$1
+  STA ballup
+  LDA #$0
+  STA balldown
   RTS
 
 CheckBallCollisionCeiling
