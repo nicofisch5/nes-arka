@@ -5,6 +5,8 @@
 ; ************** VARIABLES ****************
   .rsset $0000  ;;start variables at ram location 0
 
+pointerLo  .rs 1  ; pointer variables are declared in RAM
+pointerHi  .rs 1  ; low byte first, high byte immediately after
 joypad1    .rs 1  ; player 1 gamepad buttons, one bit per button
 ballup     .rs 1  ; 1 = ball moving up
 balldown   .rs 1  ; 1 = ball moving down
@@ -118,21 +120,36 @@ LoadBackground:
   STA $2006             ; write the high byte of $2000 address
   LDA #$00
   STA $2006             ; write the low byte of $2000 address
-  LDY #$00
 
-LoadBackgroundLoopLin:
-  LDX #$00              ; start out at 0
+  ; On veut copier 30 lignes de 32 colonnes
+  ; Soit 960 octets = 3 * 256 + 192
+  LDX #0      ; Copie des 256
 
-  LoadBackgroundLoopCol:
-    LDA background, x     ; load data from address (background + the value in x)
-    STA $2007             ; write to PPU
-    INX                   ; X = X + 1
-    CPX #$20              ; Compare X to hex $20, decimal 32
-    BNE LoadBackgroundLoopCol  ; Branch to LoadBackgroundLoop if compare was Not Equal to zero
+LoopBackground1
+  LDA background,x  ;  premiers octets
+  STA $2007 ;   depuis "murs"
+  INX         ; Après 256 incrémentations...
+  BNE LoopBackground1       ;  X revient à 0
 
-  INY                   ; Y = Y + 1
-  CPY #$1E              ; Compare X to hex $1E, decimal 30
-  BNE LoadBackgroundLoopLin
+LoopBackground2
+  LDA background+256,x ; Copie des 256
+  STA $2007    ;   octets suivants
+  INX
+  BNE LoopBackground2
+
+LoopBackground3
+  LDA background+512,x ; Puis encore 256 octets
+  STA $2007
+  INX
+  BNE LoopBackground3
+
+LoopBackground4
+  LDA background+768,x ; Et Finalement les 192 derniers
+  STA $2007
+  INX
+  CPX #192
+  BNE LoopBackground4
+
 
 LoadAttribute:
   LDA $2002             ; read PPU status to reset the high/low latch
@@ -140,21 +157,19 @@ LoadAttribute:
   STA $2006             ; write the high byte of $23C0 address
   LDA #$C0
   STA $2006             ; write the low byte of $23C0 address
-  LDY #$00
-
-LoadAttributeLoopLin:
   LDX #$00
 
-  LoadAttributeLoopCol:
-    LDA attribute, x      ; load data from address (attribute + the value in x)
-    STA $2007             ; write to PPU
-    INX                   ; X = X + 1
-    CPX #$08              ; Compare X to hex $08, decimal 8 - copying 8 bytes
-    BNE LoadAttributeLoopCol  ; Branch to LoadAttributeLoop if compare was Not Equal to zero
+LoadAttributeLoop:
+  LDA attribute, x      ; load data from address (attribute + the value in x)
+  STA $2007             ; write to PPU
+  INX                   ; X = X + 1
+  CPX #$40              ; Compare X to hex $40, decimal 64 - copying 8 bytes
+  BNE LoadAttributeLoop  ; Branch to LoadAttributeLoop if compare was Not Equal to zero
 
-  INY                   ; Y = Y + 1
-  CPY #$08
-  BNE LoadAttributeLoopLin
+
+
+
+
 
 
 
