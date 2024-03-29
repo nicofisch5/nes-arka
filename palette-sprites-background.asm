@@ -9,7 +9,7 @@ sprites:
   .db $D4, $01, %00000000, $82   ;stick middle
   .db $D4, $01, %00000000, $8B   ;stick middle
   .db $D4, $00, %01000000, $94   ;stick right
-  .db $00, $02, %00000000, $00   ;ball
+  .db $10, $03, %00000000, $20   ;ball
   ;There are 4 bytes per sprite, each on one line.
 
   ;Sprite Attributes
@@ -23,7 +23,7 @@ sprites:
 
 background:
   .db $00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff  ;;row 1
-  .db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00  ;;row 1
+  .db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$02,$ff,$ff,$ff,$ff,$ff,$ff,$00  ;;row 1
 
 attribute:
   .db %00000000, %00000000, %00000000, %00000000

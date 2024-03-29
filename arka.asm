@@ -169,7 +169,7 @@ Forever:
 
 
 
-NMI:
+NMI:          ; also named VBL
   LDA #$00
   STA $2003  ; set the low byte (00) of the RAM address
   LDA #$02
@@ -185,7 +185,7 @@ NMI:
   STA $2005
 
 
-
+; ICI EFFACEMENT DES BRIQUES DU BACKGROUND
 
   JSR ReadController1  ;;get the current button data for player 1
   JSR CheckLeftbutton
