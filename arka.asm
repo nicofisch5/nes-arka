@@ -18,6 +18,12 @@ currenttileposx  .rs 1  ;
 currenttileposy  .rs 1  ;
 currenttileaddress .rs 2      ; Adresse dans la mémoire du PPU de la tuile courant
 
+nbBricksLeft  .rs 1
+
+bricks .rs 4 * 31 ; Copie en RAM des positions des briques (champ de bits)
+tmpvar .rs 2
+current_mask .rs 1
+
 ; ************** CONSTANTS ****************
   include "constants.asm"
 
@@ -155,6 +161,17 @@ LoadAttributeLoop:
   CPX #$40              ; Compare X to hex $40, decimal 64 - copying 8 bytes
   BNE LoadAttributeLoop  ; Branch to LoadAttributeLoop if compare was Not Equal to zero
 
+  LDX #0
+LoadBricksInRAM:
+  LDA bricks_mask,x    ; depuis la ROM
+  STA bricks,x         ; vers la RAM
+  INX
+  CPX #4 * 31          ; 124 octets à copier
+  BNE LoadBricksInRAM
+
+  ; nbBricksLeft = NB_BRICKS_IN_LEVEL
+  LDA #NB_BRICKS_IN_LEVEL
+  STA nbBricksLeft
 
 ;; Avant de rebrancher le PPU
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
@@ -178,11 +195,11 @@ NMI:          ; also named VBL
 
 ; Erase brick if necessary
   ; Add a condition if(there is a brick to erase)
-  LDA currenttileaddress
+  LDA currenttileaddress  ;
   STA PPUADDR             ; write the high byte of the tile address
   LDA currenttileaddress+1
-  STA PPUADDR
-  LDA #1       ; tile ID
+  STA PPUADDR             ; write the low byte of the tile address
+  LDA #1                  ; tile ID
   STA PPUDATA
 
 
@@ -195,14 +212,11 @@ NMI:          ; also named VBL
   STA PPUSCROLL
   STA PPUSCROLL
 
-
+;; Intelligence of the program
   JSR ReadController1  ;;get the current button data for player 1
   JSR CheckLeftbutton
   JSR CheckRightbutton
   JSR UpdateBallPosition  ;;set ball sprites from positions
-
-
-
 
   RTI        ; return from interrupt
 
@@ -288,6 +302,7 @@ MoveStickRightLoop:
 CollisionRightWall
   ; no code, just no move for the stick
 
+; Move the ball and check for collisions
 UpdateBallPosition:
   JSR CheckBallCollisionBrick
   JSR CheckBallCollisionStick
@@ -313,7 +328,10 @@ UpdateBallPosition:
 
 CheckBallCollisionBrick:
   ;;; Vérifier que la balle touche une brique
-  ;;; 4 possibilités : la balle touche le bas, le haut ou les côtés de la briques
+  ;;; 4 possibilités : la balle touche le bas, le haut ou les côtés de la brique
+
+  ;;; Pour des raisons de simplicités, on ne traite (pour l'instant) que la coordonnée gauche/haut
+
   LDA SPR_BALL_ADDR+3
   STA ballposxleft
   ADC #TILE_SIZE
@@ -337,6 +355,56 @@ CheckBallCollisionBrick:
   LSR A
   STA currenttileposy
 
+  ; Is there a brick at this tile?
+CheckIfBrickInTile:
+  ; Look for the right bit inside our octet
+  LDA currenttileposx
+  AND #7              ; (x modulo 8)
+  TAX                 ; Tranfert de A vers X
+  LDA bits,x          ; et on convertit ça en un bit, pour pouvoir tester facilement
+  STA current_mask    ; current_mask contient alors %01000000 ou %00010000 par exemple.
+
+  ; Look for the right octet of the brick table
+  ; There are 32 tiles per lines, shaped in 4 octets in our table, so we need to divide by 8
+  LDA currenttileposx
+  LSR A
+  LSR A
+  LSR A
+  STA tmpvar
+  ; Y told us which line, we will multiply by 4 (4 octets (=32 bits) per line)
+  LDA currenttileposy  ; Et en multipliant Y par 4
+  ASL A
+  ASL A
+  CLC
+  ADC tmpvar         ; tmpvar = (X / 8) + (Y * 4)
+  TAX
+
+  ; Get the value of the right bit in the right octet!
+  LDA bricks,x
+  AND current_mask    ; et on test s'il y a un 1 ou pas à cette position.
+  BNE BallCollisionWithBrick ; Si != de 0 alors il s'agit d'une brique
+  RTS                 ;  et on a terminé de traiter tout ça.
+
+BallCollisionWithBrick:
+  ; Remplacer le 1 par un 0 dans la table des briques en RAM
+  LDA current_mask    ; On inverse le mask
+  EOR #$ff            ;  pour avoir des 1 partout sauf à l'emplacement de la pilule
+  STA current_mask
+  LDA bricks,x         ; Et on utilise cette valeur pour
+  AND current_mask    ;  n'effacer éventuellement que ce bit.
+  STA bricks,x
+
+  ; Décrémentation du nombres de briques dans le compteur pour la fin du niveau
+  LDA nbBricksLeft
+  DEC
+  STA nbBricksLeft
+  CLC
+  ; Si nb de briques = 0 alors niveau terminé
+  ;BEQ LevelFinished
+
+    ; Comptage de points
+
+  ; Suppression de la brique (remplacement par une tuile noire)
   ; Calculate the ID of the tile and add it to $2000 - `$2000 + (y * 32) + x`
   LDA currenttileposy  ; On commence par déterminer si on
   CLC                 ;
@@ -358,25 +426,11 @@ CheckBallCollisionBrick:
   ADC currenttileposx  ; avant d'ajouter la position de Pacman en X
   STA currenttileaddress + 1
 
+  ; Look for tile at ballposxright x ballposytop - NON TRAITÉ POUR L'INSTANT
 
+  ; Look for tile at ballposxleft x ballposybottom - NON TRAITÉ POUR L'INSTANT
 
-
-
-
-
-
-
-
-
-
-
-
-
-  ; Look for tile at ballposxright x ballposytop
-
-  ; Look for tile at ballposxleft x ballposybottom
-
-  ; Look for tile at ballposxright x ballposybottom
+  ; Look for tile at ballposxright x ballposybottom - NON TRAITÉ POUR L'INSTANT
 
 
 CheckBallCollisionStick:

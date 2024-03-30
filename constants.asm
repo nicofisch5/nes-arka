@@ -27,3 +27,6 @@ WALL_LIMIT_TOP        = $04
 WALL_LIMIT_BOTTOM     = $CD
 SPR_BALL_ADDR         = $214
 TILE_SIZE             = $08
+
+; For bricks
+NB_BRICKS_IN_LEVEL    = 25
