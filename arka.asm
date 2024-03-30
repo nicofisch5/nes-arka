@@ -144,8 +144,6 @@ LoopBackground4
   CPX #192
   BNE LoopBackground4
 
-
-
 LoadAttribute:
   LDA PPUSTATUS         ; read PPU status to reset the high/low latch
   LDA #$23
@@ -199,7 +197,7 @@ NMI:          ; also named VBL
   STA PPUADDR             ; write the high byte of the tile address
   LDA currenttileaddress+1
   STA PPUADDR             ; write the low byte of the tile address
-  LDA #1                  ; tile ID
+  LDA #$ff                  ; tile ID
   STA PPUDATA
 
 
@@ -355,6 +353,15 @@ CheckBallCollisionBrick:
   LSR A
   STA currenttileposy
 
+
+  ; Look for tile at ballposxright x ballposytop - NON TRAITÉ POUR L'INSTANT
+
+  ; Look for tile at ballposxleft x ballposybottom - NON TRAITÉ POUR L'INSTANT
+
+  ; Look for tile at ballposxright x ballposybottom - NON TRAITÉ POUR L'INSTANT
+
+
+
   ; Is there a brick at this tile?
 CheckIfBrickInTile:
   ; Look for the right bit inside our octet
@@ -396,13 +403,13 @@ BallCollisionWithBrick:
 
   ; Décrémentation du nombres de briques dans le compteur pour la fin du niveau
   LDA nbBricksLeft
-  DEC
+  DEC A
   STA nbBricksLeft
   CLC
   ; Si nb de briques = 0 alors niveau terminé
   ;BEQ LevelFinished
 
-    ; Comptage de points
+  ; Comptage de points
 
   ; Suppression de la brique (remplacement par une tuile noire)
   ; Calculate the ID of the tile and add it to $2000 - `$2000 + (y * 32) + x`
@@ -426,12 +433,11 @@ BallCollisionWithBrick:
   ADC currenttileposx  ; avant d'ajouter la position de Pacman en X
   STA currenttileaddress + 1
 
-  ; Look for tile at ballposxright x ballposytop - NON TRAITÉ POUR L'INSTANT
-
-  ; Look for tile at ballposxleft x ballposybottom - NON TRAITÉ POUR L'INSTANT
-
-  ; Look for tile at ballposxright x ballposybottom - NON TRAITÉ POUR L'INSTANT
-
+  ; Gestion du rebondissement de la balle contre la brique
+  LDA ballup
+  CMP #1
+  BEQ BallCollisionCeiling
+  BNE BallCollisionBottom
 
 CheckBallCollisionStick:
   ;;; Vérifier que la balle, au moment où elle touche la limite basse,
