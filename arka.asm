@@ -5,33 +5,21 @@
 ; ************** VARIABLES ****************
   .rsset $0000  ;;start variables at ram location 0
 
-pointerLo  .rs 1  ; pointer variables are declared in RAM
-pointerHi  .rs 1  ; low byte first, high byte immediately after
 joypad1    .rs 1  ; player 1 gamepad buttons, one bit per button
 ballup     .rs 1  ; 1 = ball moving up
 balldown   .rs 1  ; 1 = ball moving down
 ballright  .rs 1  ; 1 = ball moving right
 ballleft   .rs 1  ; 1 = ball moving left
+ballposxleft    .rs 1  ;
+ballposxright   .rs 1  ;
+ballposytop     .rs 1  ;
+ballposybottom  .rs 1  ;
+currenttileposx  .rs 1  ;
+currenttileposy  .rs 1  ;
+currenttileaddress .rs 2      ; Adresse dans la mémoire du PPU de la tuile courant
 
 ; ************** CONSTANTS ****************
-; For joypad
-BUTTON_A      = 1 << 7
-BUTTON_B      = 1 << 6
-BUTTON_SELECT = 1 << 5
-BUTTON_START  = 1 << 4
-BUTTON_UP     = 1 << 3
-BUTTON_DOWN   = 1 << 2
-BUTTON_LEFT   = 1 << 1
-BUTTON_RIGHT  = 1 << 0
-
-; For sprites
-SPR_STICK_ADDR        = $200
-SPR_STICK_SIZE        = $20
-WALL_LIMIT_LEFT       = $00
-WALL_LIMIT_RIGHT      = $F6
-WALL_LIMIT_TOP        = $04
-WALL_LIMIT_BOTTOM     = $CD
-SPR_BALL_ADDR         = $214
+  include "constants.asm"
 
 
 ; ************** ABOUT BANKING ****************
@@ -110,7 +98,7 @@ LoadSpritesLoop:
                         ; if compare was equal to 16, continue down
 
   LDA #%10000000   ; enable NMI, sprites from Pattern Table 0
-  STA $2000        ; PPUCTRL ca be access at $2000
+  STA PPUCTRL      ; PPUCTRL ca be access at $2000
                    ; Each bit has its importance
 
 
@@ -151,6 +139,7 @@ LoopBackground4
   BNE LoopBackground4
 
 
+
 LoadAttribute:
   LDA $2002             ; read PPU status to reset the high/low latch
   LDA #$23
@@ -167,20 +156,16 @@ LoadAttributeLoop:
   BNE LoadAttributeLoop  ; Branch to LoadAttributeLoop if compare was Not Equal to zero
 
 
-
-
-
-
-
-
+;; Avant de rebrancher le PPU
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
-  STA $2000
+  STA PPUCTRL
 
   LDA #%00011110   ; enable sprites, enable background, no clipping on left side
-  STA $2001
+  STA PPUMASK
 
 Forever:
   JMP Forever     ;jump back to Forever, infinite loop
+
 
 
 
@@ -190,17 +175,26 @@ NMI:          ; also named VBL
   LDA #$02
   STA $4014  ; set the high byte (02) of the RAM address, start the transfer
 
+
+; Erase brick if necessary
+  ; Add a condition if(there is a brick to erase)
+  LDA currenttileaddress
+  STA $2006             ; write the high byte of the tile address
+  LDA currenttileaddress+1
+  STA $2006
+  LDA #1       ; tile ID
+  STA $2007
+
+
 ;;This is the PPU clean up section, so rendering the next frame starts properly.
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
-  STA $2000
+  STA PPUCTRL
   LDA #%00011110   ; enable sprites, enable background, no clipping on left side
-  STA $2001
+  STA PPUMASK
   LDA #$00        ;;tell the ppu there is no background scrolling
   STA $2005
   STA $2005
 
-
-; ICI EFFACEMENT DES BRIQUES DU BACKGROUND
 
   JSR ReadController1  ;;get the current button data for player 1
   JSR CheckLeftbutton
@@ -295,9 +289,9 @@ CollisionRightWall
   ; no code, just no move for the stick
 
 UpdateBallPosition:
+  JSR CheckBallCollisionBrick
   JSR CheckBallCollisionStick
   JSR CheckBallCollisionCeiling
-  ;JSR CheckBallCollisionBottom
   JSR CheckBallCollisionLeftWall
   JSR CheckBallCollisionRightWall
 
@@ -317,7 +311,75 @@ UpdateBallPosition:
 
   RTS
 
-CheckBallCollisionStick
+CheckBallCollisionBrick:
+  ;;; Vérifier que la balle touche une brique
+  ;;; 4 possibilités : la balle touche le bas, le haut ou les côtés de la briques
+  LDA SPR_BALL_ADDR+3
+  STA ballposxleft
+  ADC #TILE_SIZE
+  STA ballposxright
+
+  LDA SPR_BALL_ADDR
+  STA ballposytop
+  ADC #TILE_SIZE
+  STA ballposybottom
+
+  ; Look for tile at ballposxleft x ballposytop
+  LDA ballposxleft
+  LSR A                ; Axis to be divided by 8 since a tile is 8x8
+  LSR A
+  LSR A
+  STA currenttileposx
+
+  LDA ballposytop
+  LSR A                ; Axis to be divided by 8 since a tile is 8x8
+  LSR A
+  LSR A
+  STA currenttileposy
+
+  ; Calculate the ID of the tile and add it to $2000 - `$2000 + (y * 32) + x`
+  LDA currenttileposy  ; On commence par déterminer si on
+  CLC                 ;
+  LSR A                ; Diviser la position par 8
+  LSR A                ;  en divisant 3 fois par 2
+  LSR A                ; pour avoir l'octet de poids fort de l'adresse
+  CLC                 ; (les lignes font 32 octets et 32*8 = 256)
+  ADC #$20            ; Ajout de la base, l'adresse commencera alors par $20.. $21.., $22.. ou $23..
+  STA currenttileaddress
+
+  ; Calcul de l'octet de poids faible de la position de la pilule à effacer
+  LDA currenttileposy
+  ASL A                 ; Et on multiplie par 32
+  ASL A                 ; en multipliant
+  ASL A                 ;  5 fois de suite par 2
+  ASL A
+  ASL A
+  CLC
+  ADC currenttileposx  ; avant d'ajouter la position de Pacman en X
+  STA currenttileaddress + 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ; Look for tile at ballposxright x ballposytop
+
+  ; Look for tile at ballposxleft x ballposybottom
+
+  ; Look for tile at ballposxright x ballposybottom
+
+
+CheckBallCollisionStick:
   ;;; Vérifier que la balle, au moment où elle touche la limite basse,
   ;;; se trouve entre la partie gauche et droite du baton
   LDA SPR_BALL_ADDR
@@ -339,7 +401,7 @@ CheckBallCollisionStick
   STA balldown
   RTS
 
-CheckBallCollisionCeiling
+CheckBallCollisionCeiling:
   LDA SPR_BALL_ADDR
   CMP #WALL_LIMIT_TOP
   BEQ BallCollisionCeiling
@@ -352,7 +414,7 @@ BallCollisionCeiling:  ; change the direction top/down of the ball
   STA balldown
   RTS
 
-CheckBallCollisionBottom  ; temporary, to see the ball boucong
+CheckBallCollisionBottom:  ; temporary, to see the ball boucong
   LDA SPR_BALL_ADDR
   CMP #WALL_LIMIT_BOTTOM
   BEQ BallCollisionBottom
