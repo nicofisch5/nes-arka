@@ -52,11 +52,11 @@ currenttileaddress .rs 2      ; Adresse dans la mémoire du PPU de la tuile cour
 ; This register must be written twice (16 bits), once for the high byte then for the low byte.
 
 LoadPalettes:
-  LDA $2002    ; read PPU status to reset the high/low latch
+  LDA PPUSTATUS    ; read PPU status to reset the high/low latch
   LDA #$3F
-  STA $2006    ; write the high byte of $3F00 address
+  STA PPUADDR  ; write the high byte of $3F00 address
   LDA #$00
-  STA $2006    ; write the low byte of $3F00 address
+  STA PPUADDR  ; write the low byte of $3F00 address
   LDX #$00
 
 ; Loop to copy palette in the PPU.
@@ -68,7 +68,7 @@ LoadPalettesLoop:
                         ; 1st time through loop it will load PaletteData+0
                         ; 2nd time through loop it will load PaletteData+1
                         ; 3rd time through loop it will load PaletteData+2, etc
-  STA $2007             ; write to PPU (using register PPUDATA)
+  STA PPUDATA           ; write to PPU (using register PPUDATA)
   INX                   ; set index to next byte
   CPX #$20
   BNE LoadPalettesLoop  ; if x = $20, 32 bytes copied, all done
@@ -103,11 +103,11 @@ LoadSpritesLoop:
 
 
 LoadBackground:
-  LDA $2002             ; read PPU status to reset the high/low latch
+  LDA PPUSTATUS         ; read PPU status to reset the high/low latch
   LDA #$20
-  STA $2006             ; write the high byte of $2000 address
+  STA PPUADDR           ; write the high byte of $2000 address
   LDA #$00
-  STA $2006             ; write the low byte of $2000 address
+  STA PPUADDR           ; write the low byte of $2000 address
 
   ; On veut copier 30 lignes de 32 colonnes
   ; Soit 960 octets = 3 * 256 + 192
@@ -115,25 +115,25 @@ LoadBackground:
 
 LoopBackground1
   LDA background,x  ;  premiers octets
-  STA $2007 ;   depuis "murs"
+  STA PPUDATA ;   depuis "murs"
   INX         ; Après 256 incrémentations...
   BNE LoopBackground1       ;  X revient à 0
 
 LoopBackground2
   LDA background+256,x ; Copie des 256
-  STA $2007    ;   octets suivants
+  STA PPUDATA    ;   octets suivants
   INX
   BNE LoopBackground2
 
 LoopBackground3
   LDA background+512,x ; Puis encore 256 octets
-  STA $2007
+  STA PPUDATA
   INX
   BNE LoopBackground3
 
 LoopBackground4
   LDA background+768,x ; Et Finalement les 192 derniers
-  STA $2007
+  STA PPUDATA
   INX
   CPX #192
   BNE LoopBackground4
@@ -141,16 +141,16 @@ LoopBackground4
 
 
 LoadAttribute:
-  LDA $2002             ; read PPU status to reset the high/low latch
+  LDA PPUSTATUS         ; read PPU status to reset the high/low latch
   LDA #$23
-  STA $2006             ; write the high byte of $23C0 address
+  STA PPUADDR           ; write the high byte of $23C0 address
   LDA #$C0
-  STA $2006             ; write the low byte of $23C0 address
+  STA PPUADDR           ; write the low byte of $23C0 address
   LDX #$00
 
 LoadAttributeLoop:
   LDA attribute, x      ; load data from address (attribute + the value in x)
-  STA $2007             ; write to PPU
+  STA PPUDATA           ; write to PPU
   INX                   ; X = X + 1
   CPX #$40              ; Compare X to hex $40, decimal 64 - copying 8 bytes
   BNE LoadAttributeLoop  ; Branch to LoadAttributeLoop if compare was Not Equal to zero
@@ -171,7 +171,7 @@ Forever:
 
 NMI:          ; also named VBL
   LDA #$00
-  STA $2003  ; set the low byte (00) of the RAM address
+  STA OAMADDR  ; set the low byte (00) of the RAM address
   LDA #$02
   STA $4014  ; set the high byte (02) of the RAM address, start the transfer
 
@@ -179,11 +179,11 @@ NMI:          ; also named VBL
 ; Erase brick if necessary
   ; Add a condition if(there is a brick to erase)
   LDA currenttileaddress
-  STA $2006             ; write the high byte of the tile address
+  STA PPUADDR             ; write the high byte of the tile address
   LDA currenttileaddress+1
-  STA $2006
+  STA PPUADDR
   LDA #1       ; tile ID
-  STA $2007
+  STA PPUDATA
 
 
 ;;This is the PPU clean up section, so rendering the next frame starts properly.
@@ -192,8 +192,8 @@ NMI:          ; also named VBL
   LDA #%00011110   ; enable sprites, enable background, no clipping on left side
   STA PPUMASK
   LDA #$00        ;;tell the ppu there is no background scrolling
-  STA $2005
-  STA $2005
+  STA PPUSCROLL
+  STA PPUSCROLL
 
 
   JSR ReadController1  ;;get the current button data for player 1
