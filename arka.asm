@@ -19,6 +19,8 @@ currenttileposy  .rs 1  ;
 currenttileaddress .rs 2      ; Adresse dans la mémoire du PPU de la tuile courant
 
 nbBricksLeft  .rs 1
+scoreOnes     .rs 1
+scoreTens     .rs 1
 
 bricks .rs 4 * 31 ; Copie en RAM des positions des briques (champ de bits)
 tmpvar .rs 2
@@ -53,6 +55,20 @@ current_mask .rs 1
 
 ; ************** REAL CODE HERE ****************
 
+;Init ball
+  LDA #$01
+  STA ballup
+  STA ballright
+  LDA #$00
+  STA balldown
+  STA ballleft
+
+;Set initial score value
+  LDA #NB_BRICKS_IN_LEVEL_ONES
+  STA scoreOnes
+  LDA #NB_BRICKS_IN_LEVEL_TENS
+  STA scoreTens
+
 ; The palettes start at PPU address $3F00 (background) and $3F10 (sprite).
 ; To write in a PPU address, we use PPU registers PPUADDR at address $2006
 ; This register must be written twice (16 bits), once for the high byte then for the low byte.
@@ -78,18 +94,6 @@ LoadPalettesLoop:
   INX                   ; set index to next byte
   CPX #$20
   BNE LoadPalettesLoop  ; if x = $20, 32 bytes copied, all done
-
-  ;Init ball
-  ;LDA #$40
-  ;STA ballx
-  ;LDA #$50
-  ;STA bally
-  LDA #$01
-  STA ballup
-  STA ballright
-  LDA #$00
-  STA balldown
-  STA ballleft
 
   ; Boucle qui affiche plusieurs sprites
 LoadSprites:
@@ -168,7 +172,9 @@ LoadBricksInRAM:
   BNE LoadBricksInRAM
 
   ; nbBricksLeft = NB_BRICKS_IN_LEVEL
-  LDA #NB_BRICKS_IN_LEVEL
+  ;LDA #NB_BRICKS_IN_LEVEL
+  LDA #NB_BRICKS_IN_LEVEL_TENS * 10
+  ADC #NB_BRICKS_IN_LEVEL_ONES
   STA nbBricksLeft
 
 ;; Avant de rebrancher le PPU
@@ -199,6 +205,23 @@ NMI:          ; also named VBL
   STA PPUADDR             ; write the low byte of the tile address
   LDA #$ff                  ; tile ID
   STA PPUDATA
+
+; Draw score
+  LDA $2002
+  LDA #$20
+  STA $2006
+  LDA #$21
+  STA $2006          ; start drawing the score at PPU $2020
+
+  ;STA $2007          ; draw to background
+  LDA scoreTens      ; next digit
+  CLC
+  ADC #$10           ; Get the right tiles (number starts at $10 in arka.chr)
+  STA $2007
+  LDA scoreOnes      ; last digit
+  CLC
+  ADC #$10
+  STA $2007
 
 
 ;;This is the PPU clean up section, so rendering the next frame starts properly.
@@ -307,6 +330,7 @@ UpdateBallPosition:
   JSR CheckBallCollisionCeiling
   JSR CheckBallCollisionLeftWall
   JSR CheckBallCollisionRightWall
+  JSR CheckBallCollisionBottom
 
   LDA SPR_BALL_ADDR+3        ; load data from address (sprites + x)
   CLC
@@ -402,12 +426,22 @@ BallCollisionWithBrick:
   STA bricks,x
 
   ; Décrémentation du nombres de briques dans le compteur pour la fin du niveau
-  LDA nbBricksLeft
-  DEC A
-  STA nbBricksLeft
+  DEC nbBricksLeft
   CLC
   ; Si nb de briques = 0 alors niveau terminé
   ;BEQ LevelFinished
+
+
+  LDA scoreOnes
+  BEQ DecrementTens
+  BNE DecrementOnes
+
+DecrementTens:
+  DEC scoreTens
+  LDA #9
+  STA scoreOnes
+DecrementOnes:
+  DEC scoreOnes
 
   ; Comptage de points
 
@@ -443,7 +477,7 @@ CheckBallCollisionStick:
   ;;; Vérifier que la balle, au moment où elle touche la limite basse,
   ;;; se trouve entre la partie gauche et droite du baton
   LDA SPR_BALL_ADDR
-  CMP #WALL_LIMIT_BOTTOM
+  CMP #STICK_LIMIT_BOTTOM
   BNE CheckBallCollisionCeiling
 
   LDA SPR_BALL_ADDR+3
@@ -474,11 +508,17 @@ BallCollisionCeiling:  ; change the direction top/down of the ball
   STA balldown
   RTS
 
-CheckBallCollisionBottom:  ; temporary, to see the ball boucong
+CheckBallCollisionBottom:
   LDA SPR_BALL_ADDR
   CMP #WALL_LIMIT_BOTTOM
-  BEQ BallCollisionBottom
+  BEQ BallOutOfBounds
   RTS
+
+BallOutOfBounds: ; The player should loose a life, for now we just move the ball
+  LDA #$10
+  STA SPR_BALL_ADDR
+  LDA #$20
+  STA SPR_BALL_ADDR+3
 
 BallCollisionBottom:  ; change the direction top/down of the ball
   LDA #$1
