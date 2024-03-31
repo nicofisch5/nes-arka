@@ -431,14 +431,13 @@ BallCollisionWithBrick:
   ; Si nb de briques = 0 alors niveau terminé
   ;BEQ LevelFinished
 
-
   LDA scoreOnes
   BEQ DecrementTens
   BNE DecrementOnes
 
 DecrementTens:
   DEC scoreTens
-  LDA #9
+  LDA #10       ; Anticipate DecrementOnes that follows
   STA scoreOnes
 DecrementOnes:
   DEC scoreOnes
