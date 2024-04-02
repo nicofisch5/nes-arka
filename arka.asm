@@ -1,181 +1,24 @@
 ; ************** iNES HEADERS ****************
   include "_ines-header.asm"
 
-
 ; ************** VARIABLES ****************
-  .rsset $0000  ;;start variables at ram location 0
-
-joypad1    .rs 1  ; player 1 gamepad buttons, one bit per button
-ballup     .rs 1  ; 1 = ball moving up
-balldown   .rs 1  ; 1 = ball moving down
-ballright  .rs 1  ; 1 = ball moving right
-ballleft   .rs 1  ; 1 = ball moving left
-ballposxleft    .rs 1  ;
-ballposxright   .rs 1  ;
-ballposytop     .rs 1  ;
-ballposybottom  .rs 1  ;
-currenttileposx  .rs 1  ;
-currenttileposy  .rs 1  ;
-currenttileaddress .rs 2      ; Adresse dans la mémoire du PPU de la tuile courant
-
-nbBricksLeft  .rs 1
-scoreOnes     .rs 1
-scoreTens     .rs 1
-
-bricks .rs 4 * 31 ; Copie en RAM des positions des briques (champ de bits)
-tmpvar .rs 2
-current_mask .rs 1
+  include "variables.asm"
 
 ; ************** CONSTANTS ****************
   include "constants.asm"
 
-
 ; ************** ABOUT BANKING ****************
-; NESASM arranges everything in 8KB code and 8KB graphics banks.
-; To fill the 16KB PRG space 2 banks are needed 0 and 1)
-; NESASM needs these directives in order to know how many 8KB banks your ROM has
-
-; .bank and .org control two completely different things
-; .bank controls the location of the data in your output file (i.e. your ROM image)
-; .org specifies the address range in which the 6502 is actually going to see that data.
-
-  ; $C000 is often the address where the CPU starts executing instructions
-  ; when the NES is powered on.
-
-  ; Pour les cartouches (ROM - code et données, hors données graphiques) de 16 Ko,
-  ; le code est tout à la fin de l'espace d'adressage du CPU, soit de $C000 à $FFFF
+  include "_about_banking.asm"
 
   .bank 0
   .org $C000
 
-  ;
 ; ************** CODE NECESSARY FOR ALL NES GAMES ****************
   include "_reset-vblank-clearmem.asm"
 
-
 ; ************** REAL CODE HERE ****************
-
-;Init ball
-  LDA #$01
-  STA ballup
-  STA ballright
-  LDA #$00
-  STA balldown
-  STA ballleft
-
-;Set initial score value
-  LDA #NB_BRICKS_IN_LEVEL_ONES
-  STA scoreOnes
-  LDA #NB_BRICKS_IN_LEVEL_TENS
-  STA scoreTens
-
-; The palettes start at PPU address $3F00 (background) and $3F10 (sprite).
-; To write in a PPU address, we use PPU registers PPUADDR at address $2006
-; This register must be written twice (16 bits), once for the high byte then for the low byte.
-
-LoadPalettes:
-  LDA PPUSTATUS    ; read PPU status to reset the high/low latch
-  LDA #$3F
-  STA PPUADDR  ; write the high byte of $3F00 address
-  LDA #$00
-  STA PPUADDR  ; write the low byte of $3F00 address
-  LDX #$00
-
-; Loop to copy palette in the PPU.
-; X register is used to count how many times the loop has repeated
-; The loop starts at 0 and counts up to 32.
-LoadPalettesLoop:
-  LDA palette, x        ; PPUADDR is auto incremented each write in PPUDATA
-                        ; load data from address (PaletteData + the value in x)
-                        ; 1st time through loop it will load PaletteData+0
-                        ; 2nd time through loop it will load PaletteData+1
-                        ; 3rd time through loop it will load PaletteData+2, etc
-  STA PPUDATA           ; write to PPU (using register PPUDATA)
-  INX                   ; set index to next byte
-  CPX #$20
-  BNE LoadPalettesLoop  ; if x = $20, 32 bytes copied, all done
-
-  ; Boucle qui affiche plusieurs sprites
-LoadSprites:
-  LDX #$00              ; start at 0
-
-LoadSpritesLoop:
-  LDA sprites, x        ; load data from address (sprites + x)
-  STA SPR_STICK_ADDR, x ; store into RAM address ($0200 + x)
-  INX                   ; X = X + 1
-  CPX #$18              ; Compare X to hex $10, decimal 16
-  BNE LoadSpritesLoop   ; Branch to LoadSpritesLoop if compare was Not Equal to zero
-                        ; if compare was equal to 16, continue down
-
-  LDA #%10000000   ; enable NMI, sprites from Pattern Table 0
-  STA PPUCTRL      ; PPUCTRL ca be access at $2000
-                   ; Each bit has its importance
-
-
-LoadBackground:
-  LDA PPUSTATUS         ; read PPU status to reset the high/low latch
-  LDA #$20
-  STA PPUADDR           ; write the high byte of $2000 address
-  LDA #$00
-  STA PPUADDR           ; write the low byte of $2000 address
-
-  ; On veut copier 30 lignes de 32 colonnes
-  ; Soit 960 octets = 3 * 256 + 192
-  LDX #0      ; Copie des 256
-
-LoopBackground1
-  LDA background,x  ;  premiers octets
-  STA PPUDATA ;   depuis "murs"
-  INX         ; Après 256 incrémentations...
-  BNE LoopBackground1       ;  X revient à 0
-
-LoopBackground2
-  LDA background+256,x ; Copie des 256
-  STA PPUDATA    ;   octets suivants
-  INX
-  BNE LoopBackground2
-
-LoopBackground3
-  LDA background+512,x ; Puis encore 256 octets
-  STA PPUDATA
-  INX
-  BNE LoopBackground3
-
-LoopBackground4
-  LDA background+768,x ; Et Finalement les 192 derniers
-  STA PPUDATA
-  INX
-  CPX #192
-  BNE LoopBackground4
-
-LoadAttribute:
-  LDA PPUSTATUS         ; read PPU status to reset the high/low latch
-  LDA #$23
-  STA PPUADDR           ; write the high byte of $23C0 address
-  LDA #$C0
-  STA PPUADDR           ; write the low byte of $23C0 address
-  LDX #$00
-
-LoadAttributeLoop:
-  LDA attribute, x      ; load data from address (attribute + the value in x)
-  STA PPUDATA           ; write to PPU
-  INX                   ; X = X + 1
-  CPX #$40              ; Compare X to hex $40, decimal 64 - copying 8 bytes
-  BNE LoadAttributeLoop  ; Branch to LoadAttributeLoop if compare was Not Equal to zero
-
-  LDX #0
-LoadBricksInRAM:
-  LDA bricks_mask,x    ; depuis la ROM
-  STA bricks,x         ; vers la RAM
-  INX
-  CPX #4 * 31          ; 124 octets à copier
-  BNE LoadBricksInRAM
-
-  ; nbBricksLeft = NB_BRICKS_IN_LEVEL
-  ;LDA #NB_BRICKS_IN_LEVEL
-  LDA #NB_BRICKS_IN_LEVEL_TENS * 10
-  ADC #NB_BRICKS_IN_LEVEL_ONES
-  STA nbBricksLeft
+  include "load-palettes-sprites-background.asm"
+  include "init-game.asm"
 
 ;; Avant de rebrancher le PPU
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
@@ -195,7 +38,6 @@ NMI:          ; also named VBL
   STA OAMADDR  ; set the low byte (00) of the RAM address
   LDA #$02
   STA $4014  ; set the high byte (02) of the RAM address, start the transfer
-
 
 ; Erase brick if necessary
   ; Add a condition if(there is a brick to erase)
@@ -576,4 +418,4 @@ BallCollisionRightWall:  ; change the direction right/left of the ball
 
   .bank 2
   .org $0000
-  .incbin "arka.chr"   ;includes 8KB graphics file from SMB1
+  .incbin "arka.chr"   ;includes 8KB graphics file
