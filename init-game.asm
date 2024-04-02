@@ -5,6 +5,8 @@
   LDA #$00
   STA balldown
   STA ballleft
+  STA isBallSemiAngle
+  STA switchBallSemiAngle
 
 ;Set initial score value
   LDA #NB_BRICKS_IN_LEVEL_ONES

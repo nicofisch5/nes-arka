@@ -1,6 +1,7 @@
   .rsset $0000  ;;start variables at ram location 0
 
 joypad1    .rs 1  ; player 1 gamepad buttons, one bit per button
+
 ballup     .rs 1  ; 1 = ball moving up
 balldown   .rs 1  ; 1 = ball moving down
 ballright  .rs 1  ; 1 = ball moving right
@@ -9,6 +10,10 @@ ballposxleft    .rs 1  ;
 ballposxright   .rs 1  ;
 ballposytop     .rs 1  ;
 ballposybottom  .rs 1  ;
+
+isBallSemiAngle       .rs 1  ;
+switchBallSemiAngle   .rs 1  ;
+
 currenttileposx  .rs 1  ;
 currenttileposy  .rs 1  ;
 currenttileaddress .rs 2      ; Adresse dans la mémoire du PPU de la tuile courant

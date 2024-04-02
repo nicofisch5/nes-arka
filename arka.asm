@@ -168,12 +168,13 @@ CollisionRightWall
 ; Move the ball and check for collisions
 UpdateBallPosition:
   JSR CheckBallCollisionBrick
-  JSR CheckBallCollisionStick
   JSR CheckBallCollisionCeiling
   JSR CheckBallCollisionLeftWall
   JSR CheckBallCollisionRightWall
+  JSR CheckBallCollisionStick
   JSR CheckBallCollisionBottom
 
+  ; Left/Right movement
   LDA SPR_BALL_ADDR+3        ; load data from address (sprites + x)
   CLC
   ADC ballright
@@ -181,6 +182,27 @@ UpdateBallPosition:
   SBC ballleft
   STA SPR_BALL_ADDR+3          ; store into RAM address ($0200 + x)
 
+  ; Check ball angle
+  LDA isBallSemiAngle
+  BEQ UpDownMovement      ; No angle => normal movement
+  BNE ManageBallSemiAngle
+
+ManageBallSemiAngle:
+  LDA switchBallSemiAngle
+  BEQ ManageBallSemiAngleNoMovement      ; Switch = 0 => no movement
+
+  LDA #$0
+  STA switchBallSemiAngle
+  JSR UpDownMovement                     ; Switch = 1 => movement
+  RTS
+
+ManageBallSemiAngleNoMovement:
+  LDA #$1
+  STA switchBallSemiAngle
+  RTS
+
+UpDownMovement:
+  ; Up/Down movement
   LDA SPR_BALL_ADDR+0        ; load data from address (sprites + x)
   CLC
   ADC balldown
@@ -314,28 +336,6 @@ DecrementOnes:
   BEQ BallCollisionCeiling
   BNE BallCollisionBottom
 
-CheckBallCollisionStick:
-  ;;; Vérifier que la balle, au moment où elle touche la limite basse,
-  ;;; se trouve entre la partie gauche et droite du baton
-  LDA SPR_BALL_ADDR
-  CMP #STICK_LIMIT_BOTTOM
-  BNE CheckBallCollisionCeiling
-
-  LDA SPR_BALL_ADDR+3
-  CMP SPR_STICK_ADDR+3
-  BMI CheckBallCollisionCeiling
-
-  LDA SPR_STICK_ADDR+3
-  ADC #SPR_STICK_SIZE
-  CMP SPR_BALL_ADDR+3
-  BMI CheckBallCollisionCeiling
-
-  LDA #$1
-  STA ballup
-  LDA #$0
-  STA balldown
-  RTS
-
 CheckBallCollisionCeiling:
   LDA SPR_BALL_ADDR
   CMP #WALL_LIMIT_TOP
@@ -366,6 +366,65 @@ BallCollisionBottom:  ; change the direction top/down of the ball
   STA ballup
   LDA #$0
   STA balldown
+  RTS
+
+CheckBallCollisionStick:
+  ;;; Vérifier que la balle, au moment où elle touche la limite basse,
+  ;;; se trouve entre la partie gauche et droite du baton
+  LDA SPR_BALL_ADDR
+  CMP #STICK_LIMIT_BOTTOM
+  BNE CheckBallCollisionCeiling   ; If bottom limit is not reached => nothing to do
+
+  LDA SPR_BALL_ADDR+3
+  CMP SPR_STICK_ADDR+3
+  BMI CheckBallCollisionCeiling   ; If ball is over the left limit of the stick => nothing to do
+
+  LDA SPR_STICK_ADDR+3
+  ADC #SPR_STICK_SIZE
+  CMP SPR_BALL_ADDR+3
+  BMI CheckBallCollisionCeiling   ; If ball is over the right limit of the stick => nothing to do
+
+  ; Collision ball & stick, ball movement from down to up
+  LDA #$1
+  STA ballup
+  LDA #$0
+  STA balldown
+  STA isBallSemiAngle
+
+  ; Collision ball & stick, check stick position to define ball angle
+  LDA SPR_STICK_ADDR+3
+  ADC #8                  ; Left part of the stick
+  CMP SPR_BALL_ADDR+3
+  BPL BallSemiAngleLeft
+
+  LDA SPR_STICK_ADDR+3
+  ADC #24                 ; Middle part of the stick
+  CMP SPR_BALL_ADDR+3
+  BPL BallSemiAngleMiddle
+
+  LDA SPR_STICK_ADDR+3
+  ADC #32                 ; Right part of the stick
+  CMP SPR_BALL_ADDR+3
+  BPL BallSemiAngleRight
+
+BallSemiAngleLeft:
+  LDA #$1
+  STA isBallSemiAngle
+  STA ballleft
+  LDA #$0
+  STA ballright
+  RTS
+
+BallSemiAngleMiddle:
+  ; Nothing to do
+  RTS
+
+BallSemiAngleRight:
+  LDA #$1
+  STA isBallSemiAngle
+  STA ballright
+  LDA #$0
+  STA ballleft
   RTS
 
 CheckBallCollisionLeftWall:
