@@ -51,7 +51,7 @@ DrawScore:
   LDA $2002
   LDA #$20    ; start drawing the score at PPU $2021
   STA $2006
-  LDA #$21
+  LDA #$22
   STA $2006
 
   LDA scoreTens      ; first digit
