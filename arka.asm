@@ -31,8 +31,6 @@ Forever:
   JMP Forever     ;jump back to Forever, infinite loop
 
 
-
-
 NMI:          ; also named VBL
   LDA #$00
   STA OAMADDR  ; set the low byte (00) of the RAM address
@@ -48,15 +46,15 @@ NMI:          ; also named VBL
   LDA #$ff                  ; tile ID
   STA PPUDATA
 
-; Draw score
+; Draw score into background
+DrawScore:
   LDA $2002
-  LDA #$20
+  LDA #$20    ; start drawing the score at PPU $2021
   STA $2006
   LDA #$21
-  STA $2006          ; start drawing the score at PPU $2020
+  STA $2006
 
-  ;STA $2007          ; draw to background
-  LDA scoreTens      ; next digit
+  LDA scoreTens      ; first digit
   CLC
   ADC #$10           ; Get the right tiles (number starts at $10 in arka.chr)
   STA $2007
@@ -64,7 +62,7 @@ NMI:          ; also named VBL
   CLC
   ADC #$10
   STA $2007
-
+EndDrawScore:
 
 ;;This is the PPU clean up section, so rendering the next frame starts properly.
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
@@ -74,6 +72,8 @@ NMI:          ; also named VBL
   LDA #$00        ;;tell the ppu there is no background scrolling
   STA PPUSCROLL
   STA PPUSCROLL
+
+
 
 ;; Intelligence of the program
   JSR ReadController1  ;;get the current button data for player 1
@@ -85,85 +85,12 @@ NMI:          ; also named VBL
 
 ;;;;;;;;;;;;;;
 
-; Initialize controller reading
-ReadController1:
-  LDA #$01
-  STA $4016
-  LDA #$00
-  STA $4016
-  LDX #$08
-ReadController1Loop:
-  LDA $4016
-  LSR A            ; bit0 -> Carry
-  ROL joypad1      ; bit0 <- Carry
-  DEX
-  BNE ReadController1Loop
-  RTS
+; ************** CONTROLLER READING ****************
+  include "controller-reading.asm"
 
-; Check the state of the Left and Right button
-CheckLeftbutton:
-  LDY #0
-  LDX #0
-  LDA joypad1  ; Load controller state
-  AND #BUTTON_LEFT   ; Perform bitwise AND with LEFT button mask
-  BNE CheckCollisionLeftWall
-    ; Left button is not pressed
-    ; Your code here
-  RTS
+; ************** STICK MOVEMENT ****************
+  include "stick-movement.asm"
 
-CheckCollisionLeftWall:
-  LDA SPR_STICK_ADDR+3
-  CMP #WALL_LIMIT_LEFT
-  BEQ CollisionLeftWall
-
-MoveStickLeftLoop:
-  LDA SPR_STICK_ADDR+3,y     ; load sprite X position
-  SEC             ; make sure the carry flag is clear
-  SBC #$01        ; A = A - 1
-  STA SPR_STICK_ADDR+3,y     ; save sprite X position
-  INY             ; add the offset of 4
-  INY
-  INY
-  INY             ; (one sprite is 4 bytes)
-  INX
-  CPX #$05        ; loop 4 time because of 4 sprites to move
-  BNE MoveStickLeftLoop
-  RTS
-
-CollisionLeftWall:
-  ; no code, just no move
-
-CheckRightbutton:
-  LDY #0
-  LDX #0
-  LDA joypad1  ; Load controller state
-  AND #BUTTON_RIGHT   ; Perform bitwise AND with LEFT button mask
-  BNE CheckCollisionRightWall
-    ; Left button is not pressed
-    ; Your code here
-  RTS
-
-CheckCollisionRightWall:
-  LDA SPR_STICK_ADDR+3       ; load sprite X position
-  CMP #(WALL_LIMIT_RIGHT-SPR_STICK_SIZE)    ; the stick is large, we check the wall with le right border by adding its size
-  BEQ CollisionRightWall
-
-MoveStickRightLoop:
-  LDA SPR_STICK_ADDR+3,y     ; load sprite X position
-  CLC             ; make sure the carry flag is clear
-  ADC #$01        ; A = A + 1
-  STA SPR_STICK_ADDR+3,y     ; save sprite X position
-  INY             ; add the offset of 4
-  INY
-  INY
-  INY             ; (one sprite is 4 bytes)
-  INX
-  CPX #$05        ; loop 5 time because stick is 5 sprites to move
-  BNE MoveStickRightLoop
-  RTS
-
-CollisionRightWall
-  ; no code, just no move for the stick
 
 ; Move the ball and check for collisions
 UpdateBallPosition:
