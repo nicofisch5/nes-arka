@@ -7,44 +7,8 @@ UpdateBallPosition:
   JSR CheckBallCollisionRightWall
   JSR CheckBallCollisionStick
   JSR CheckBallCollisionBottom
+  JMP BallMovement
 
-  ; Left/Right movement
-  LDA SPR_BALL_ADDR+3        ; load data from address (sprites + x)
-  CLC
-  ADC ballright
-  SEC
-  SBC ballleft
-  STA SPR_BALL_ADDR+3          ; store into RAM address ($0200 + x)
-
-  ; Check ball angle
-  LDA isBallSemiAngle
-  BEQ UpDownMovement      ; No angle => normal movement
-  BNE ManageBallSemiAngle
-
-ManageBallSemiAngle:
-  LDA switchBallSemiAngle
-  BEQ ManageBallSemiAngleNoMovement      ; Switch = 0 => no movement
-
-  LDA #$0
-  STA switchBallSemiAngle
-  JSR UpDownMovement                     ; Switch = 1 => movement
-  RTS
-
-ManageBallSemiAngleNoMovement:
-  LDA #$1
-  STA switchBallSemiAngle
-  RTS
-
-UpDownMovement:
-  ; Up/Down movement
-  LDA SPR_BALL_ADDR+0        ; load data from address (sprites + x)
-  CLC
-  ADC balldown
-  SEC
-  SBC ballup
-  STA SPR_BALL_ADDR+0          ; store into RAM address ($0200 + x)
-
-  RTS
 
 CheckBallCollisionBrick:
   ;;; Vérifier que la balle touche une brique
@@ -308,27 +272,66 @@ CheckBallCollisionLeftWall:
   LDA SPR_BALL_ADDR+3
   CMP #WALL_LIMIT_LEFT
   BEQ BallCollisionLeftWall
-  RTS
+  JMP EndUpdateBallPosition
 
 BallCollisionLeftWall:  ; change the direction left/right of the ball
   LDA #$0
   STA ballleft
   LDA #$1
   STA ballright
-  RTS
+  JMP EndUpdateBallPosition
 
 CheckBallCollisionRightWall:
   LDA SPR_BALL_ADDR+3
   CMP #WALL_LIMIT_RIGHT
   BEQ BallCollisionRightWall
-  RTS
+  JMP EndUpdateBallPosition
 
 BallCollisionRightWall:  ; change the direction right/left of the ball
   LDA #$1
   STA ballleft
   LDA #$0
   STA ballright
-  RTS
+  JMP EndUpdateBallPosition
+
+
+BallMovement:
+; Left/Right movement
+  LDA SPR_BALL_ADDR+3        ; load data from address (sprites + x)
+  CLC
+  ADC ballright
+  SEC
+  SBC ballleft
+  STA SPR_BALL_ADDR+3          ; store into RAM address ($0200 + x)
+
+  ; Check ball angle
+  LDA isBallSemiAngle
+  BEQ UpDownMovement      ; No angle => normal movement
+  BNE ManageBallSemiAngle
+
+ManageBallSemiAngle:
+  LDA switchBallSemiAngle
+  BEQ ManageBallSemiAngleNoMovement      ; Switch = 0 => no movement
+
+  LDA #$0
+  STA switchBallSemiAngle
+  JSR UpDownMovement                     ; Switch = 1 => movement
+
+ManageBallSemiAngleNoMovement:
+  LDA #$1
+  STA switchBallSemiAngle
+  JMP EndUpdateBallPosition
+
+UpDownMovement:
+  ; Up/Down movement
+  LDA SPR_BALL_ADDR+0        ; load data from address (sprites + x)
+  CLC
+  ADC balldown
+  SEC
+  SBC ballup
+  STA SPR_BALL_ADDR+0          ; store into RAM address ($0200 + x)
+  JMP EndUpdateBallPosition
+
 
 EndUpdateBallPosition:
   RTS
