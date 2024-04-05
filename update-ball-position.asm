@@ -216,37 +216,57 @@ CheckBallCollisionStick:
   ;;; se trouve entre la partie gauche et droite du baton
   LDA SPR_BALL_ADDR
   CMP #STICK_LIMIT_BOTTOM
-  BNE CheckBallCollisionCeiling   ; If bottom limit is not reached => nothing to do
+  BEQ CheckBallLeftCollisionStk   ; If bottom limit is not reached => nothing to do
+  JMP EndUpdateBallPosition
 
-  LDA SPR_BALL_ADDR+3
-  CMP SPR_STICK_ADDR+3
-  BMI CheckBallCollisionCeiling   ; If ball is over the left limit of the stick => nothing to do
+  CheckBallLeftCollisionStk:
+    LDA SPR_BALL_ADDR+3
+    CMP SPR_STICK_ADDR+3
+    BPL CheckBallRightCollisionStk
+    JMP EndUpdateBallPosition   ; If ball is over the left limit of the stick => nothing to do
+  EndCheckBallLeftCollisionStk:
 
-  LDA SPR_STICK_ADDR+3
-  ADC #SPR_STICK_SIZE
-  CMP SPR_BALL_ADDR+3
-  BMI CheckBallCollisionCeiling   ; If ball is over the right limit of the stick => nothing to do
+  CheckBallRightCollisionStk:
+    LDA SPR_STICK_ADDR+3
+    ADC #SPR_STICK_SIZE
+    CMP SPR_BALL_ADDR+3
+    BPL BallCollisionStick
+    JMP EndUpdateBallPosition   ; If ball is over the right limit of the stick => nothing to do
+  EndCheckBallRightCollisionStk:
 
+EndCheckBallCollisionStick:
+
+BallCollisionStick:
   ; Collision ball & stick, ball movement from down to up
   LDA #$1
   STA ballup
   LDA #$0
   STA balldown
-  STA isBallSemiAngle
+  STA isBallSemiAngle   ; Ball angle is always put to 0 and can be change to 1 afterwards
 
   ; Collision ball & stick, check stick position to define ball angle
   LDA SPR_STICK_ADDR+3
-  ADC #8                  ; Left part of the stick
+  ADC #4                 ; Far left part of the stick
   CMP SPR_BALL_ADDR+3
   BPL BallSemiAngleLeft
 
   LDA SPR_STICK_ADDR+3
-  ADC #24                 ; Middle part of the stick
+  ADC #10                 ; Left part of the stick
   CMP SPR_BALL_ADDR+3
-  BPL BallSemiAngleMiddle
+  BPL BallNoAngleLeft
 
   LDA SPR_STICK_ADDR+3
-  ADC #32                 ; Right part of the stick
+  ADC #18                 ; Middle part of the stick
+  CMP SPR_BALL_ADDR+3
+  BPL BallNoAngleMiddle
+
+  LDA SPR_STICK_ADDR+3
+  ADC #26                 ; Right part of the stick
+  CMP SPR_BALL_ADDR+3
+  BPL BallNoAngleRight
+
+  LDA SPR_STICK_ADDR+3
+  ADC #32                 ; Far right part of the stick
   CMP SPR_BALL_ADDR+3
   BPL BallSemiAngleRight
 
@@ -256,11 +276,25 @@ BallSemiAngleLeft:
   STA ballleft
   LDA #$0
   STA ballright
-  RTS
+  JMP EndUpdateBallPosition
 
-BallSemiAngleMiddle:
+BallNoAngleLeft:
+  LDA #$1
+  STA ballleft
+  LDA #$0
+  STA ballright
+  JMP EndUpdateBallPosition
+
+BallNoAngleMiddle:
   ; Nothing to do
-  RTS
+  JMP EndUpdateBallPosition
+
+BallNoAngleRight:
+  LDA #$1
+  STA ballright
+  LDA #$0
+  STA ballleft
+  JMP EndUpdateBallPosition
 
 BallSemiAngleRight:
   LDA #$1
@@ -268,7 +302,7 @@ BallSemiAngleRight:
   STA ballright
   LDA #$0
   STA ballleft
-  RTS
+  JMP EndUpdateBallPosition
 
 CheckBallCollisionLeftWall:
   LDA SPR_BALL_ADDR+3
