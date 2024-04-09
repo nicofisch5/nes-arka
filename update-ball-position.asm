@@ -1,4 +1,3 @@
-
 ; Move the ball and check for collisions
 UpdateBallPosition:
   JSR CheckBallCollisionBrick
@@ -8,7 +7,6 @@ UpdateBallPosition:
   JSR CheckBallCollisionStick
   JSR CheckBallCollisionBottom
   JMP BallMovement
-
 
 CheckBallCollisionBrick:
   ;;; Vérifier que la balle touche une brique
@@ -315,7 +313,7 @@ ManageBallSemiAngle:
 
   LDA #$0
   STA switchBallSemiAngle
-  JSR UpDownMovement                     ; Switch = 1 => movement
+  JMP UpDownMovement                     ; Switch = 1 => movement
 
 ManageBallSemiAngleNoMovement:
   LDA #$1
