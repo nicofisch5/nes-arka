@@ -21,7 +21,12 @@ currenttileaddress .rs 2      ; Adresse dans la mémoire du PPU de la tuile cour
 nbBricksLeft  .rs 1
 scoreOnes     .rs 1
 scoreTens     .rs 1
+nbLife        .rs 1
 
 bricks .rs 4 * 31 ; Copie en RAM des positions des briques (champ de bits)
 tmpvar .rs 2
 current_mask .rs 1
+
+gamestate   .rs 1
+pointerLo	  .rs 1
+pointerHi	  .rs 1

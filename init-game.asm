@@ -1,3 +1,13 @@
+;State
+  LDA #GAMESTATE_TITLE
+  STA gamestate
+
+;Init BG
+  lda #LOW(BGTitle)
+  sta pointerLo
+  lda #HIGH(BGTitle)
+  sta pointerHi
+
 ;Init ball
   LDA #$01
   STA ballup
@@ -7,6 +17,9 @@
   STA ballleft
   STA isBallSemiAngle
   STA switchBallSemiAngle
+
+  LDA #$01
+  STA nbLife
 
 ;Set initial score value
   LDA #NB_BRICKS_IN_LEVEL_ONES

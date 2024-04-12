@@ -13,12 +13,35 @@
   .bank 0
   .org $C000
 
+LoadBG:
+  LDA PPUSTATUS         ; read PPU status to reset the high/low latch
+  LDA #$20
+  STA PPUADDR           ; write the high byte of $2000 address
+  LDA #$00
+  STA PPUADDR           ; write the low byte of $2000 address
+
+  LDX #$00
+  LDY #$00
+
+; Load entire BG
+LoadBGLoop:
+  lda [pointerLo], y	; can only be used with y
+  sta $2007
+  iny
+  bne LoadBGLoop
+  inc pointerHi
+  inx
+  cpx #$04
+  bne LoadBGLoop
+  rts
+
 ; ************** CODE NECESSARY FOR ALL NES GAMES ****************
   include "_reset-vblank-clearmem.asm"
 
 ; ************** REAL CODE HERE ****************
-  include "load-palettes-sprites-background.asm"
   include "init-game.asm"
+  include "load-palettes-sprites-background.asm"
+
 
 ;; Avant de rebrancher le PPU
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
@@ -37,11 +60,67 @@ NMI:          ; Begin interrup (also named VBL)
   LDA #$02
   STA $4014  ; set the high byte (02) of the RAM address, start the transfer
 
-; ************** ERASE BRICK ****************
-  include "erase-brick.asm"
+
+  LDA #$00        ;;tell the ppu there is no background scrolling
+  STA PPUSCROLL
+  STA PPUSCROLL
+
+
+GameEngine:
+  LDA gamestate
+  CMP #GAMESTATE_TITLE
+  BEQ GameEngineTitle
+  CMP #GAMESTATE_PLAYING
+  BEQ GameEnginePlaying
+  CMP #GAMESTATE_GAMEOVER
+  BEQ GameEngineGameover
+
+  GameEngineTitle:
+    LDA #%00001010   ; disable sprites, enable background, no clipping on left side
+    STA PPUMASK
+
+    ; Check for start pressed
+    JSR ReadController1
+    LDA joypad1        ; Load controller state
+    AND #BUTTON_START
+    BNE StartGame
+    JMP EndGameEngine
+  EndGameEngineTitle:
+
+  GameEngineGameover:
+
+    ; TODO check for start pressed
+
+    JMP EndGameEngine
+  EndGameEngineGameover:
+
+
+  StartGame:
+    LDA #GAMESTATE_PLAYING
+    STA gamestate
+
+    lda #%00000000 ; disable NMI
+    sta $2000
+    lda #%00000000 ; disable rendering
+    sta $2001
+
+    LDA #LOW(BG)
+    STA pointerLo
+    LDA #HIGH(BG)
+    STA pointerHi
+    JSR LoadBG
+
+    JMP GameEnginePlaying
+  EndStartGame:
+
+  GameEnginePlaying:
 
 ; ************** DRAW SCORE ****************
   include "draw-score.asm"
+
+; ************** ERASE BRICK ****************
+  include "erase-brick.asm"
+
 
 ;;This is the PPU clean up section, so rendering the next frame starts properly.
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
@@ -59,6 +138,13 @@ NMI:          ; Begin interrup (also named VBL)
   JSR CheckRightbutton
   JSR UpdateBallPosition  ;;set ball sprites from positions
 
+
+
+EndGameEnginePlaying:
+
+EndGameEngine:
+
+
   RTI        ; return from interrupt
 
 
@@ -70,6 +156,9 @@ NMI:          ; Begin interrup (also named VBL)
 
 ; ************** STICK MOVEMENT ****************
   include "update-ball-position.asm"
+
+
+
 
 
   ; $E000: refers to the start of the ROM bank that contains additional program code or data

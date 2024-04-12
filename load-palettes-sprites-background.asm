@@ -40,42 +40,7 @@ LoadSpritesLoop:
   STA PPUCTRL      ; PPUCTRL ca be access at $2000
                    ; Each bit has its importance
 
-
-LoadBackground:
-  LDA PPUSTATUS         ; read PPU status to reset the high/low latch
-  LDA #$20
-  STA PPUADDR           ; write the high byte of $2000 address
-  LDA #$00
-  STA PPUADDR           ; write the low byte of $2000 address
-
-  ; On veut copier 30 lignes de 32 colonnes
-  ; Soit 960 octets = 3 * 256 + 192
-  LDX #0      ; Copie des 256
-
-LoopBackground1
-  LDA background,x  ;  premiers octets
-  STA PPUDATA ;   depuis "murs"
-  INX         ; Après 256 incrémentations...
-  BNE LoopBackground1       ;  X revient à 0
-
-LoopBackground2
-  LDA background+256,x ; Copie des 256
-  STA PPUDATA    ;   octets suivants
-  INX
-  BNE LoopBackground2
-
-LoopBackground3
-  LDA background+512,x ; Puis encore 256 octets
-  STA PPUDATA
-  INX
-  BNE LoopBackground3
-
-LoopBackground4
-  LDA background+768,x ; Et Finalement les 192 derniers
-  STA PPUDATA
-  INX
-  CPX #192
-  BNE LoopBackground4
+  JSR LoadBG
 
 LoadAttribute:
   LDA PPUSTATUS         ; read PPU status to reset the high/low latch
