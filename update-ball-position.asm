@@ -107,8 +107,11 @@ CheckBallCollisionBrick:
   DecrementScore:
     DEC nbBricksLeft    ; Minus one
     CLC
-    ; TODO If nb bricks = 0 then end of level
-    ;BEQ LevelFinished
+
+    ; If nb bricks = 0 then end of level
+    LDA nbBricksLeft
+    CMP #$0
+    BEQ PrepareEndLevel
 
     LDA scoreOnes
     BEQ DecrementTens
@@ -121,7 +124,31 @@ CheckBallCollisionBrick:
     DecrementOnes:
       DEC scoreOnes
 
+    JMP BounceBallWithBrick
+
   EndDecrementScore:
+
+  PrepareEndLevel:
+    LDA #GAMESTATE_GAMEOVER
+    STA gamestate
+
+    LDA #%00000000 ; disable NMI
+    STA $2000
+    LDA #%00000000 ; disable rendering
+    STA $2001
+
+    LDA #LOW(BGEndLevel)
+    STA pointerLo
+    LDA #HIGH(BGEndLevel)
+    STA pointerHi
+    JSR LoadBG
+
+    LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
+    STA PPUCTRL
+    LDA #%00001010   ; disable sprites, enable background, no clipping on left side
+    STA PPUMASK
+
+  EndPrepareEndLevel:
 
   BounceBallWithBrick:
     ; Gestion du rebondissement de la balle contre la brique

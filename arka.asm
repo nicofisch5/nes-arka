@@ -13,34 +13,16 @@
   .bank 0
   .org $C000
 
-LoadBG:
-  LDA PPUSTATUS         ; read PPU status to reset the high/low latch
-  LDA #$20
-  STA PPUADDR           ; write the high byte of $2000 address
-  LDA #$00
-  STA PPUADDR           ; write the low byte of $2000 address
-
-  LDX #$00
-  LDY #$00
-
-; Load entire BG
-LoadBGLoop:
-  lda [pointerLo], y	; can only be used with y
-  sta $2007
-  iny
-  bne LoadBGLoop
-  inc pointerHi
-  inx
-  cpx #$04
-  bne LoadBGLoop
-  rts
-
 ; ************** CODE NECESSARY FOR ALL NES GAMES ****************
   include "_reset-vblank-clearmem.asm"
 
 ; ************** REAL CODE HERE ****************
   include "init-game.asm"
+
   include "load-palettes-sprites-background.asm"
+
+
+
 
 
 ;; Avant de rebrancher le PPU
@@ -52,6 +34,11 @@ LoadBGLoop:
 
 Forever:
   JMP Forever     ;jump back to Forever, infinite loop
+
+
+
+
+
 
 
 NMI:          ; Begin interrup (also named VBL)
@@ -68,10 +55,12 @@ NMI:          ; Begin interrup (also named VBL)
 
 GameEngine:
   LDA gamestate
-  CMP #GAMESTATE_TITLE
-  BEQ GameEngineTitle
   CMP #GAMESTATE_PLAYING
   BEQ GameEnginePlaying
+  CMP #GAMESTATE_TITLE
+  BEQ GameEngineTitle
+  CMP #GAMESTATE_ENDLEVEL
+  BEQ GameEngineEndLevel
   CMP #GAMESTATE_GAMEOVER
   BEQ GameEngineGameover
 
@@ -87,8 +76,17 @@ GameEngine:
     JMP EndGameEngine
   EndGameEngineTitle:
 
-  GameEngineGameover:
+  GameEngineEndLevel:
+    LDA #%00001010   ; disable sprites, enable background, no clipping on left side
+    STA PPUMASK
+    ; TODO check for start pressed
 
+    JMP EndGameEngine
+  EndGameEngineEndLevel:
+
+  GameEngineGameover:
+    LDA #%00001010   ; disable sprites, enable background, no clipping on left side
+    STA PPUMASK
     ; TODO check for start pressed
 
     JMP EndGameEngine

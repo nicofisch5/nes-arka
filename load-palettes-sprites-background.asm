@@ -40,7 +40,26 @@ LoadSpritesLoop:
   STA PPUCTRL      ; PPUCTRL ca be access at $2000
                    ; Each bit has its importance
 
-  JSR LoadBG
+LoadBG:
+  LDA PPUSTATUS         ; read PPU status to reset the high/low latch
+  LDA #$20
+  STA PPUADDR           ; write the high byte of $2000 address
+  LDA #$00
+  STA PPUADDR           ; write the low byte of $2000 address
+
+  LDX #$00
+  LDY #$00
+
+; Load entire BG
+LoadBGLoop:
+  lda [pointerLo], y	; can only be used with y
+  sta $2007
+  iny
+  bne LoadBGLoop
+  inc pointerHi
+  inx
+  cpx #$04
+  bne LoadBGLoop
 
 LoadAttribute:
   LDA PPUSTATUS         ; read PPU status to reset the high/low latch
