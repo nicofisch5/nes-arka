@@ -134,6 +134,7 @@ GameEngine:
   JSR ReadController1  ;;get the current button data for player 1
   JSR CheckLeftbutton
   JSR CheckRightbutton
+  JSR CheckBallCollisionBrick
   JSR UpdateBallPosition  ;;set ball sprites from positions
 
 
@@ -152,10 +153,11 @@ EndGameEngine:
 ; ************** STICK MOVEMENT ****************
   include "stick-movement.asm"
 
-; ************** STICK MOVEMENT ****************
+; ************** BALL COLLISION ****************
+  include "ball-collision-brick.asm"
+
+; ************** BALL POSITION ****************
   include "update-ball-position.asm"
-
-
 
 
 
