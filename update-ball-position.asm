@@ -65,9 +65,10 @@ CheckBallCollisionBrick:
   ; Is there a brick at one of the 4 adjacent tiles of the ball?
   CheckIfBrickInTiles:
     LDY #$00
-    STY curAdjTileIndex
 
     CheckIfBrickInTilesLoop:
+      STY curAdjTileIndex
+
       ; Look for the right bit inside our octet
       LDA curAdjTilePosX,y
       AND #7              ; (x modulo 8)
