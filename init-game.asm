@@ -21,6 +21,9 @@
   LDA #$01
   STA nbLife
 
+  LDA #$ff
+  STA curAdjTileIndex
+
 ;Set initial score value
   LDA #NB_BRICKS_IN_LEVEL_ONES
   STA scoreOnes
@@ -35,8 +38,6 @@ LoadBricksInRAM:
   CPX #4 * 31          ; 124 octets à copier
   BNE LoadBricksInRAM
 
-  ; nbBricksLeft = NB_BRICKS_IN_LEVEL
-  ;LDA #NB_BRICKS_IN_LEVEL
   LDA #NB_BRICKS_IN_LEVEL_TENS * 10
   ADC #NB_BRICKS_IN_LEVEL_ONES
   STA nbBricksLeft

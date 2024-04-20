@@ -14,8 +14,33 @@ ballposybottom  .rs 1  ;
 isBallSemiAngle       .rs 1  ;
 switchBallSemiAngle   .rs 1  ;
 
-currenttileposx  .rs 1  ;
-currenttileposy  .rs 1  ;
+;currenttileposx  .rs 1
+;currenttileposy  .rs 1
+
+;curAdjTile1PosX  .rs 1
+;curAdjTile1PosY  .rs 1
+;curAdjTile2PosX  .rs 1
+;curAdjTile2PosY  .rs 1
+;curAdjTile3PosX  .rs 1
+;curAdjTile3PosY  .rs 1
+;curAdjTile4PosX  .rs 1
+;curAdjTile4PosY  .rs 1
+
+;exAdjTile1PosX  .rs 1
+;exAdjTile1PosY  .rs 1
+;exAdjTile2PosX  .rs 1
+;exAdjTile2PosY  .rs 1
+;exAdjTile3PosX  .rs 1
+;exAdjTile3PosY  .rs 1
+;exAdjTile4PosX  .rs 1
+;exAdjTile4PosY  .rs 1
+
+curAdjTilePosX  .rs 4
+curAdjTilePosY  .rs 4
+exAdjTilePosX  .rs 4
+exAdjTilePosY  .rs 4
+curAdjTileIndex .rs 1
+
 currenttileaddress .rs 2      ; Adresse dans la mémoire du PPU de la tuile courant
 
 nbBricksLeft  .rs 1
