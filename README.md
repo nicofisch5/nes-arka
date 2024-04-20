@@ -12,11 +12,14 @@ To compile use NESASM.
 - Stick can move left and right inside bounds
 - Ball bouces on stick and walls
 - First levels with bricks
-- Ball bouces on bricks v1
+- Ball bouces on bricks
+- Ball get out of the bottom bounds
+- End of level when all bricks have been collided
+- States management: start, level, game over
 
 ## What's next
 
-- Ball bouces on bricks v2
-- End of level when all bricks have been collided
-- States management: start, level, game over
-- Ball get out of the bottom bounds
+- Better start position of the ball
+- Transition when ball goes out of bounds (when not end of level)
+- New levels
+- Transition between levels
