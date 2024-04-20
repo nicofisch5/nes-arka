@@ -18,9 +18,11 @@
   STA isBallSemiAngle
   STA switchBallSemiAngle
 
-  LDA #$01
+;Number of lifes
+  LDA #$03
   STA nbLife
 
+;Tile with brick
   LDA #$ff
   STA curAdjTileIndex
 

@@ -70,7 +70,7 @@ CheckBallCollisionBrick:
       STY curAdjTileIndex
 
       ; Look for the right bit inside our octet
-      LDA curAdjTilePosX,y
+      LDA curAdjTilePosX,y    ; We store the current tile with the brick for later
       AND #7              ; (x modulo 8)
       TAX                 ; Tranfert de A vers X
       LDA bits,x          ; et on convertit ça en un bit, pour pouvoir tester facilement
