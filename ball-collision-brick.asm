@@ -218,16 +218,6 @@ CheckBallCollisionBrick:
   EndBounceBallWithBrick:
 
   BallComeFromTheTopOrBottom:
-    ;LDA ballup
-    ;CMP #1
-    ;BEQ BallCollisionCeiling
-
-    ; change the direction top/down of the ball
-    ;LDA #$1
-    ;STA ballup
-    ;LDA #$0
-    ;STA balldown
-
     LDA ballup
     STA tmpvar
     LDA balldown

@@ -6,6 +6,7 @@ ballup     .rs 1  ; 1 = ball moving up
 balldown   .rs 1  ; 1 = ball moving down
 ballright  .rs 1  ; 1 = ball moving right
 ballleft   .rs 1  ; 1 = ball moving left
+ballSpeed  .rs 1
 ballposxleft    .rs 1  ;
 ballposxright   .rs 1  ;
 ballposytop     .rs 1  ;

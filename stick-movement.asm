@@ -24,7 +24,19 @@ MoveStickLeftLoop:        ; Stick is moving on the left
   INX
   CPX #$05                ; loop 5 times because of 5 sprites to move
   BNE MoveStickLeftLoop
-  RTS                     ; Dont't do more
+
+  ; check start game
+  LDA ballSpeed
+  CMP #$0
+  BNE EndStickMovement
+
+  ; if start game
+  LDA SPR_BALL_ADDR+3
+  SEC
+  SBC #$01
+  STA SPR_BALL_ADDR+3
+
+  JMP EndStickMovement                     ; Dont't do more
 
 EndCheckLeftbutton:
 
@@ -53,7 +65,23 @@ MoveStickRightLoop:
   INX
   CPX #$05                ; loop 5 time because of 5 sprites to move
   BNE MoveStickRightLoop
-  RTS                     ; Dont't do more
+
+  ; check start game
+  LDA ballSpeed
+  CMP #$0
+  BNE EndStickMovement
+
+  ; if start game
+  LDA SPR_BALL_ADDR+3
+  CLC
+  ADC #$01
+  STA SPR_BALL_ADDR+3
+
+  JMP EndStickMovement                     ; Dont't do more
 
 EndCheckRightbutton:
   ; no code, just no move for the stick
+
+
+EndStickMovement:
+  RTS

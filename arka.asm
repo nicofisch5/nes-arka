@@ -132,11 +132,18 @@ GameEngine:
 
 ; ************** HERE START INTELLIGENCE OF THE GAME ****************
   JSR ReadController1  ;;get the current button data for player 1
+  JSR CheckLaunchBall
+
   JSR CheckLeftbutton
   JSR CheckRightbutton
   JSR CheckBallCollisionBrick
-  JSR UpdateBallPosition  ;;set ball sprites from positions
+  JSR UpdateBallPosition
 
+  ; x2 to make speed x2
+  JSR CheckLeftbutton
+  JSR CheckRightbutton
+  JSR CheckBallCollisionBrick
+  JSR UpdateBallPosition
 
 
 EndGameEnginePlaying:
@@ -149,6 +156,9 @@ EndGameEngine:
 
 ; ************** CONTROLLER READING ****************
   include "controller-reading.asm"
+
+; ************** START GAME ****************
+  include "launch-ball.asm"
 
 ; ************** STICK MOVEMENT ****************
   include "stick-movement.asm"

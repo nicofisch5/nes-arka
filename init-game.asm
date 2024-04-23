@@ -9,7 +9,8 @@
   sta pointerHi
 
 ;Init ball
-  LDA #$01
+  LDA #$00
+  STA ballSpeed
   STA ballup
   STA ballright
   LDA #$00
