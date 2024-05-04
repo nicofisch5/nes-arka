@@ -166,7 +166,7 @@ CheckBallCollisionBottom:
       BEQ PrepareGameOver
     EndCheckEndOfLife:
 
-    ; <START> Partie à remplacer par le fait que la balle soit collée au stick comme au départ
+    ; Ball on the stick
     LDA #$CC
     STA SPR_BALL_ADDR
     LDA #$82
@@ -190,7 +190,6 @@ CheckBallCollisionBottom:
     STA SPR_STICK_ADDR+3+12
     LDA #$94
     STA SPR_STICK_ADDR+3+16
-    ; <END> Partie à remplacer par le fait que la balle soit collée au stick comme au départ
 
     JMP EndCheckBallCollisionBottom
 

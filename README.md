@@ -16,10 +16,10 @@ To compile use NESASM.
 - Ball get out of the bottom bounds
 - End of level when all bricks have been collided
 - States management: start, level, game over
+- Start position of the ball is on the stick
 
 ## What's next
 
-- Better start position of the ball
-- Transition when ball goes out of bounds (when not end of level)
 - New levels
 - Transition between levels
+- Options
