@@ -75,3 +75,23 @@ LoadAttributeLoop:
   INX                   ; X = X + 1
   CPX #$40              ; Compare X to hex $40, decimal 64 - copying 8 bytes
   BNE LoadAttributeLoop  ; Branch to LoadAttributeLoop if compare was Not Equal to zero
+
+  LDX #$00
+  LDY #$00
+LoadBricksInRAM:
+  lda [pointerLoMask], y	; can only be used with y
+  STA bricks,y            ; vers la RAM
+  iny
+  CPY #4 * 31
+  bne LoadBricksInRAM
+
+;Set initial score value
+InitialScoreValues:
+  LDA #NB_BRICKS_IN_LEVEL_ONES
+  STA scoreOnes
+  LDA #NB_BRICKS_IN_LEVEL_TENS
+  STA scoreTens
+
+  LDA #NB_BRICKS_IN_LEVEL_TENS * 0
+  ADC #NB_BRICKS_IN_LEVEL_ONES
+  STA nbBricksLeft

@@ -3,13 +3,14 @@ GameEngine:
   CMP #GAMESTATE_PLAYING
   BEQ GameEnginePlaying
   CMP #GAMESTATE_TITLE
-  BEQ GameEngineTitle
+  ;BEQ GameEngineTitle
+  BEQ GameEngineEndLevel
   CMP #GAMESTATE_ENDLEVEL
   BEQ GameEngineEndLevel
   CMP #GAMESTATE_GAMEOVER
   BEQ GameEngineGameover
 
-  GameEngineTitle:
+  GameEngineEndLevel:
     LDA #%00001010   ; disable sprites, enable background, no clipping on left side
     STA PPUMASK
 
@@ -17,15 +18,7 @@ GameEngine:
     JSR ReadController1
     LDA joypad1        ; Load controller state
     AND #BUTTON_START
-    BNE StartGame
-    JMP EndGameEngine
-  EndGameEngineTitle:
-
-  GameEngineEndLevel:
-    LDA #%00001010   ; disable sprites, enable background, no clipping on left side
-    STA PPUMASK
-    ; TODO check for start pressed
-
+    BNE StartNewLevel
     JMP EndGameEngine
   EndGameEngineEndLevel:
 
@@ -37,8 +30,7 @@ GameEngine:
     JMP EndGameEngine
   EndGameEngineGameover:
 
-
-  StartGame:
+  StartNewLevel:
     LDA #GAMESTATE_PLAYING
     STA gamestate
 
@@ -47,13 +39,45 @@ GameEngine:
     lda #%00000000 ; disable rendering
     sta $2001
 
-    LDA #LOW(BG)
-    STA pointerLo
-    LDA #HIGH(BG)
-    STA pointerHi
-    JSR LoadBG
+    INC level
+    LDA level
+    CMP #$01
+    BEQ LoadLevel1
+    CMP #$02
+    BEQ LoadLevel2
 
-    JMP GameEnginePlaying
-  EndStartGame:
+    LoadLevel1:
+      LDA #LOW(BGLevel1)
+      STA pointerLo
+      LDA #HIGH(BGLevel1)
+      STA pointerHi
+
+      LDA #LOW(bricksMaskLevel1)
+      STA pointerLoMask
+      LDA #HIGH(bricksMaskLevel1)
+      STA pointerHiMask
+
+      JSR PutBallOnStick
+      JSR LoadBG
+      JMP GameEnginePlaying
+    EndLoadLevel1:
+
+    LoadLevel2:
+      LDA #LOW(BGLevel2)
+      STA pointerLo
+      LDA #HIGH(BGLevel2)
+      STA pointerHi
+
+      LDA #LOW(bricksMaskLevel2)
+      STA pointerLoMask
+      LDA #HIGH(bricksMaskLevel2)
+      STA pointerHiMask
+
+      JSR PutBallOnStick
+      JSR LoadBG
+      JMP GameEnginePlaying
+    EndLoadLevel2:
+
+  EndStartNewLevel:
 
   GameEnginePlaying:

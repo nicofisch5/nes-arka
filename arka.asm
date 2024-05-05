@@ -111,6 +111,7 @@ EndGameEngine:
 
 ; ************** BALL POSITION ****************
   include "update-ball-position.asm"
+  include "ball-on-stick.asm"
 
 
 
