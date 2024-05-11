@@ -17,9 +17,17 @@ To compile use NESASM.
 - End of level when all bricks have been collided
 - States management: start, level, game over
 - Start position of the ball is on the stick
+- Second level
 
 ## What's next
 
 - New levels
 - Transition between levels
-- Options
+- Options (global)
+  - an option is falling from a brick - needs to store which brick(s) contains an option
+  - if collision between stick and option then event
+- Option ballx3
+  - 2 more balls are launched from the stick
+  - a life is lost only when the last ball goes out of bounds
+  - zefzef
+- Option laser
